@@ -13,8 +13,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import ru.gorohov.eventmanager.secured.handlers.CustomAccessDeniedHandler;
+import ru.gorohov.eventmanager.secured.handlers.CustomEntryPoint;
 import ru.gorohov.eventmanager.secured.jwt.JwtManager;
 import ru.gorohov.eventmanager.secured.service.UserService;
 
@@ -29,12 +32,18 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private final CustomEntryPoint customEntryPoint;
+
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+
 
     @Autowired
-    public SecurityConfig(UserService userService, JwtManager jwtManager, JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(UserService userService, JwtManager jwtManager, JwtAuthenticationFilter jwtAuthenticationFilter, CustomEntryPoint customEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler) {
         this.userService = userService;
         this.jwtManager = jwtManager;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customEntryPoint = customEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
     }
 
 
@@ -88,6 +97,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(ses -> ses.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(customEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler))
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
                                 .requestMatchers(HttpMethod.POST, "/users").permitAll()
@@ -99,6 +110,14 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.DELETE, "/locations/{id}").hasAuthority("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/locations/{id}").hasAnyAuthority("USER", "ADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/location/{id}").hasAuthority("ADMIN")
+
+                                .requestMatchers(HttpMethod.POST, "/events").hasAuthority("USER")
+                                .requestMatchers(HttpMethod.DELETE, "/events/{id}").hasAnyAuthority("ADMIN", "USER")
+                                .requestMatchers(HttpMethod.GET, "/events/{id}").hasAnyAuthority("USER", "ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/events/{id}").hasAnyAuthority("ADMIN", "USER")
+                                .requestMatchers(HttpMethod.POST, "/events/search").hasAnyAuthority("ADMIN", "USER")
+                                .requestMatchers(HttpMethod.POST,  "/events/registrations/{eventId}").hasAuthority("USER")
+
                                 .anyRequest().authenticated()
 
                 )
@@ -107,26 +126,5 @@ public class SecurityConfig {
 
 
     }
-
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        return http
-//                .csrf(AbstractHttpConfigurer::disable)
-//                .sessionManagement(sessionManagement -> sessionManagement
-//                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authorizeHttpRequests(authorizeHttpRequest ->
-//                        authorizeHttpRequest
-//                                .requestMatchers(HttpMethod.POST, "/register").permitAll()
-//                                .requestMatchers(HttpMethod.POST, "/auth").permitAll()
-//                                .requestMatchers(HttpMethod.GET, "/users/{userId}").hasAuthority("ADMIN")
-//                                .requestMatchers(HttpMethod.POST, "/locations").hasAuthority("ADMIN")
-//                                .requestMatchers(HttpMethod.DELETE, "/locations/{locationId}").hasAuthority("ADMIN")
-//                                .requestMatchers(HttpMethod.PUT, "/locations/{locationId}").hasAuthority("ADMIN")
-//                                .requestMatchers(HttpMethod.GET, "/locations/**").hasAnyAuthority("ADMIN", "USER")
-//                                .anyRequest().authenticated())
-//
-//                .build();
-//    }
-
 
 }

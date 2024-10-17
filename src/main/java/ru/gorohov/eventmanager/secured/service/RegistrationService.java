@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import ru.gorohov.eventmanager.convector.UserConvector;
+import ru.gorohov.eventmanager.secured.convector.UserConvector;
 import ru.gorohov.eventmanager.secured.forms.SignUpRequest;
 import ru.gorohov.eventmanager.secured.user.UserDomain;
 import ru.gorohov.eventmanager.secured.user.UserDto;

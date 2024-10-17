@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.gorohov.eventmanager.convector.UserConvector;
+import ru.gorohov.eventmanager.secured.convector.UserConvector;
 import ru.gorohov.eventmanager.secured.forms.JwtTokenResponse;
 import ru.gorohov.eventmanager.secured.forms.SignInRequest;
 import ru.gorohov.eventmanager.secured.forms.SignUpRequest;

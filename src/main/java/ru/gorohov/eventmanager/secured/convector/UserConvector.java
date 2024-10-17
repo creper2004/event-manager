@@ -1,4 +1,4 @@
-package ru.gorohov.eventmanager.convector;
+package ru.gorohov.eventmanager.secured.convector;
 
 import org.springframework.stereotype.Component;
 import ru.gorohov.eventmanager.secured.user.UserDomain;

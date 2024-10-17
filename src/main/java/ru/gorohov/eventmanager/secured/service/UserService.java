@@ -12,7 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.gorohov.eventmanager.convector.UserConvector;
+import ru.gorohov.eventmanager.secured.convector.UserConvector;
 import ru.gorohov.eventmanager.secured.user.UserDomain;
 import ru.gorohov.eventmanager.secured.repository.UserRepository;
 
@@ -50,7 +50,7 @@ public class UserService implements UserDetailsService {
     public UserDomain saveUser(UserDomain userDomain) {
         log.info("Saving user {}", userDomain);
         if (isExistingUserByLogin(userDomain.getLogin())) {
-            throw new EntityExistsException("Login" + userDomain.getLogin() + " already exists");
+            throw new EntityExistsException("Login " + userDomain.getLogin() + " already exists");
         }
         var toSave = userConvector.fromDomainToEntity(userDomain);
         var savedUser = userRepository.save(toSave);

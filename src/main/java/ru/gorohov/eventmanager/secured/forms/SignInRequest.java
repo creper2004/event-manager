@@ -12,6 +12,6 @@ public class SignInRequest {
     private String login;
 
     @NotBlank(message = "Password should not be empty")
-    @Size(min = 8, message = "Password length should be larger than 7 characters")
+    @Size(min = 3, message = "Password length should be larger than 2 characters")
     private String password;
 }

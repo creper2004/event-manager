@@ -56,6 +56,9 @@ public class LocationsService {
             throw new IllegalArgumentException("Location ID should be null in body");
         }
         Location locationFound = getLocationById(id);
+        if (locationFound.getCapacity() > location.getCapacity()) {
+            throw new IllegalArgumentException("Capacity should not be less than it was");
+        }
         locationFound.setAddress(location.getAddress());
         locationFound.setDescription(location.getDescription());
         locationFound.setName(location.getName());

@@ -41,6 +41,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (!jwtManager.isTokenValid(jwtToken)) {
             logger.info("Token is invalid");
+            filterChain.doFilter(request, response);
+            return;
         }
         var username = jwtManager.getLoginFromToken(jwtToken);
         var role = jwtManager.getRoleFromToken(jwtToken);

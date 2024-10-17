@@ -3,6 +3,7 @@ package ru.gorohov.eventmanager.secured.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -10,20 +11,28 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
+
 public class JwtManager {
 
-    private static final String secretKey = "20E6373E53AA93FFBAC681D68D12879819CF6641FB1C9393785C09182DF0CA36";
+    private final String secretKey;
 
-    private static final Duration duration = Duration.ofHours(1);
+    private final Duration duration;
+
+    public JwtManager(@Value("${jwt.key}") String secretKey,
+                      @Value("${jwt.working.time}") Long duration) {
+        this.secretKey = secretKey;
+        this.duration = Duration.ofHours(duration);
+    }
+
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         var role = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
                 .toList();
-        System.out.println(role);
         claims.put("role", role);
         Date issuedTime = new Date();
         Date expirationTime = new Date(issuedTime.getTime() + duration.toMillis());
@@ -65,7 +74,8 @@ public class JwtManager {
 
     public String getRoleFromToken(String token) {
         Claims claims = getAllClaimsFromToken(token);
-        return claims.get("role", String.class);
+        List<String> roles = (List<String>) claims.get("role");
+        return roles.get(0);
     }
 
 }
