@@ -2,12 +2,12 @@ package ru.gorohov.eventmanager.event.convector;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import ru.gorohov.eventmanager.event.EventStatus;
+import ru.gorohov.eventmanager.event.domain.EventStatus;
 import ru.gorohov.eventmanager.event.domain.EventDomain;
-import ru.gorohov.eventmanager.event.dto.EventDto;
-import ru.gorohov.eventmanager.event.entities.EventEntity;
-import ru.gorohov.eventmanager.event.requests.EventCreateRequest;
-import ru.gorohov.eventmanager.event.requests.EventUpdateRequest;
+import ru.gorohov.eventmanager.event.api.EventDto;
+import ru.gorohov.eventmanager.event.db.EventEntity;
+import ru.gorohov.eventmanager.event.request.EventCreateRequest;
+import ru.gorohov.eventmanager.event.request.EventUpdateRequest;
 
 import java.util.ArrayList;
 

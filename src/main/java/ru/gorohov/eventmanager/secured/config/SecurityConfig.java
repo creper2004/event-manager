@@ -13,13 +13,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import ru.gorohov.eventmanager.secured.handlers.CustomAccessDeniedHandler;
-import ru.gorohov.eventmanager.secured.handlers.CustomEntryPoint;
-import ru.gorohov.eventmanager.secured.jwt.JwtManager;
-import ru.gorohov.eventmanager.secured.service.UserService;
+import ru.gorohov.eventmanager.secured.handler.CustomAccessDeniedHandler;
+import ru.gorohov.eventmanager.secured.handler.CustomEntryPoint;
+import ru.gorohov.eventmanager.user.domain.UserService;
 
 @EnableWebSecurity
 @Configuration
@@ -27,8 +25,6 @@ public class SecurityConfig {
 
 
     private final UserService userService;
-
-    private final JwtManager jwtManager;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -38,9 +34,8 @@ public class SecurityConfig {
 
 
     @Autowired
-    public SecurityConfig(UserService userService, JwtManager jwtManager, JwtAuthenticationFilter jwtAuthenticationFilter, CustomEntryPoint customEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler) {
+    public SecurityConfig(UserService userService, JwtAuthenticationFilter jwtAuthenticationFilter, CustomEntryPoint customEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler) {
         this.userService = userService;
-        this.jwtManager = jwtManager;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.customEntryPoint = customEntryPoint;
         this.customAccessDeniedHandler = customAccessDeniedHandler;
@@ -65,9 +60,6 @@ public class SecurityConfig {
         daoAuthenticationProvider.setPasswordEncoder(bCryptPasswordEncoder());
         return daoAuthenticationProvider;
     }
-
-    //
-
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
@@ -116,7 +108,11 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/events/{id}").hasAnyAuthority("USER", "ADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/events/{id}").hasAnyAuthority("ADMIN", "USER")
                                 .requestMatchers(HttpMethod.POST, "/events/search").hasAnyAuthority("ADMIN", "USER")
+                                .requestMatchers(HttpMethod.GET, "/events/my").hasAuthority("USER")
+
                                 .requestMatchers(HttpMethod.POST,  "/events/registrations/{eventId}").hasAuthority("USER")
+                                .requestMatchers(HttpMethod.DELETE, "/events/registrations/cancel/{eventId}").hasAuthority("USER")
+                                .requestMatchers(HttpMethod.GET, "/events/registrations/my").hasAuthority("USER")
 
                                 .anyRequest().authenticated()
 

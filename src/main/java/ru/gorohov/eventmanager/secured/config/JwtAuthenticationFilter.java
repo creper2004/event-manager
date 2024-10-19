@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.gorohov.eventmanager.secured.jwt.JwtManager;
+import ru.gorohov.eventmanager.user.domain.UserService;
+import ru.gorohov.eventmanager.secured.UserSecurity;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtManager jwtManager;
+    private final UserService userService;
     private static final String HEADER_NAME = "Authorization";
     public static final String BEARER_PREFIX = "Bearer ";
 
@@ -46,9 +49,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         var username = jwtManager.getLoginFromToken(jwtToken);
         var role = jwtManager.getRoleFromToken(jwtToken);
+        var user = userService.getUserByLogin(username);
+        var userSecured = UserSecurity.builder()
+                .login(user.getLogin())
+                .id(user.getId())
+                .age(user.getAge())
+                .passwordHash(user.getPasswordHash())
+                .role(user.getRole())
+
+                .build();
 
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
-                new UsernamePasswordAuthenticationToken(username, null,
+                new UsernamePasswordAuthenticationToken(userSecured, null,
                         List.of(new SimpleGrantedAuthority(role)));
 
         SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
