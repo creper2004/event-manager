@@ -6,8 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.gorohov.HistoryOfFields;
+import ru.gorohov.InfoOfEditedEvent;
 import ru.gorohov.eventmanager.event.convector.EventConvector;
+import ru.gorohov.eventmanager.event.db.EventEntity;
+import ru.gorohov.eventmanager.event.db.EventRegistrationEntity;
 import ru.gorohov.eventmanager.event.permission.EventPermissionService;
+import ru.gorohov.eventmanager.kafka.KafkaSender;
 import ru.gorohov.eventmanager.web.GetCurrentUserService;
 import ru.gorohov.eventmanager.event.db.EventRepository;
 import ru.gorohov.eventmanager.event.request.EventSearchRequest;
@@ -15,6 +20,8 @@ import ru.gorohov.eventmanager.location.db.LocationsRepository;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +35,7 @@ public class EventService {
     private final EventPermissionService eventPermissionService;
     private final LocationsRepository locationsRepository;
     private final GetCurrentUserService getCurrentUserService;
+    private final KafkaSender kafkaSender;
     private final Logger log = LoggerFactory.getLogger(EventService.class);
 
     @Transactional
@@ -65,7 +73,21 @@ public class EventService {
             }
             if (LocalDateTime.now().isBefore(found.getDate())) {
                 found.setStatus("CANCELLED");
+                HistoryOfFields<String> status = HistoryOfFields.<String>builder()
+                        .oldField(found.getStatus())
+                        .newField("CANCELLED")
+                        .build();
+                List<Long> usedIds = found.getRegistration()
+                        .stream().map(EventRegistrationEntity::getUserId)
+                        .toList();
+                var message = InfoOfEditedEvent.builder()
+                        .eventId(eventId)
+                        .ownerId(found.getOwnerId())
+                        .status(status)
+                        .registeredUsersId(usedIds)
+                        .build();
                 eventRepository.save(found);
+                kafkaSender.sendMessage(message, "changed-event-topic");
             }
             else {
                 throw new RuntimeException("Cannot cancel event which status: " + found.getStatus());
@@ -89,6 +111,8 @@ public class EventService {
         log.info("Updating event {}", eventId);
         var found = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id " + eventId + " not found"));
+        HashMap<String, Object> oldFields = getOldFields(found);
+        log.info("Old fields: {}", oldFields);
 
         if (eventPermissionService.canAuthenticatedUserModifyEvent(eventId))  {
 
@@ -123,7 +147,26 @@ public class EventService {
             {
                 throw new IllegalArgumentException("Location with id " + eventDomain.getLocationId() + " is busy for your time");
             }
+
+            List<Long> usedIds = found.getRegistration()
+                    .stream().map(EventRegistrationEntity::getUserId)
+                    .toList();
+            InfoOfEditedEvent info = InfoOfEditedEvent.builder()
+                    .eventId(eventId)
+                    .ownerId(found.getOwnerId())
+                    .name(new HistoryOfFields<String>((String) oldFields.get("name"), found.getName()))
+                    .maxPlaces(new HistoryOfFields<Integer>((Integer) oldFields.get("maxPlaces"), found.getMaxPlaces()))
+                    .date(new HistoryOfFields<LocalDateTime>((LocalDateTime) oldFields.get("date"), found.getDate()))
+                    .cost(new HistoryOfFields<Integer>((Integer) oldFields.get("cost"), found.getCost()))
+                    .duration(new HistoryOfFields<Integer>((Integer) oldFields.get("duration"), found.getDuration()))
+                    .locationId(new HistoryOfFields<Long>((Long) oldFields.get("locationId"), found.getLocationId()))
+                    .status(new HistoryOfFields<String>((String) oldFields.get("status"),  found.getStatus()))
+                    .registeredUsersId(usedIds)
+                    .build();
+
+
             eventRepository.save(found);
+            kafkaSender.sendMessage(info,"changed-event-topic");
             return eventConvector.fromEntityToDomain(found);
         }
         else {
@@ -174,4 +217,15 @@ public class EventService {
         return foundedEvents.isEmpty();
     }
 
+    private HashMap<String, Object> getOldFields(EventEntity eventEntity) {
+        HashMap<String, Object> oldFields = new HashMap<>();
+        oldFields.put("name", eventEntity.getName());
+        oldFields.put("maxPlaces", eventEntity.getMaxPlaces());
+        oldFields.put("date", eventEntity.getDate());
+        oldFields.put("cost", eventEntity.getCost());
+        oldFields.put("duration", eventEntity.getDuration());
+        oldFields.put("locationId", eventEntity.getLocationId());
+        oldFields.put("status", eventEntity.getStatus());
+        return oldFields;
+    }
 }

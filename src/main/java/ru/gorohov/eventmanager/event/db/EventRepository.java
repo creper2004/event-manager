@@ -14,6 +14,9 @@ import java.util.Optional;
 public interface EventRepository extends JpaRepository<EventEntity, Long> {
     Optional<EventEntity> findById(Long id);
 
+
+
+
     @Query("""
         SELECT e FROM EventEntity e
         WHERE (:name IS NULL OR e.name LIKE %:name%)
@@ -58,21 +61,32 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
 
 
     @Modifying
-    @Query("""
-        UPDATE EventEntity e
-        SET e.status = 'STARTED'
-        WHERE e.status = 'WAIT_START'
-        AND e.date <= CURRENT_TIMESTAMP
-        """)
-    void updateUpcomingEvents();
+    @Query(value = """
+WITH updated AS (
+    UPDATE events
+    SET status = 'STARTED'
+    WHERE status = 'WAIT_START' AND date <= CURRENT_TIMESTAMP
+    RETURNING *
+)
+SELECT * FROM updated
+""", nativeQuery = true)
+    List<EventEntity> updateAndGetUpcomingEvents();
+
+
 
     @Modifying
     @Query(value = """
-    UPDATE events AS e 
+WITH updated AS (
+    UPDATE events
     SET status = 'FINISHED'
     WHERE status = 'STARTED'
-    AND e.date + make_interval(mins := e.duration) <= CURRENT_TIMESTAMP
-    """, nativeQuery = true)
-    void updateFinishingEvents();
+    AND date + make_interval(mins := duration) <= CURRENT_TIMESTAMP
+    RETURNING *
+)
+SELECT * FROM updated
+""", nativeQuery = true)
+    List<EventEntity> updateAndGetFinishingEvents();
+
+
 
 }
